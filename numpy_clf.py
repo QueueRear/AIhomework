@@ -4,6 +4,8 @@ from loader import img2vector
 from plot import plotLosslist
 import matplotlib.pyplot as plt
 import pickle
+import random
+
 
 def readDataset(path):
     fileList = listdir(path)  # 获取当前文件夹下所有文件
@@ -21,11 +23,11 @@ def readDataset(path):
 def Sigmoid(x, diff=False):
     def sigmoid(x):
         return 1 / (1 + np.exp(-x))
-    
+
     def dsigmoid(x):
         f = sigmoid(x)
         return f * (1 - f)
-    
+
     return sigmoid(x) if diff == False else dsigmoid(x)
 
 
@@ -37,14 +39,17 @@ class Net():
     def __init__(self, hiddenLayers):
         self.n = len(hiddenLayers)
         # X Input
+        np.random.seed(8)
+        random.seed(8)
         self.X = np.random.randn(1024, 1)
 
         self.w = [np.random.randn(hiddenLayers[0], 1024)]
         self.b = [np.random.randn(hiddenLayers[0], 1)]
         for i in range(1, self.n):
-            self.w.append(np.random.randn(hiddenLayers[i], hiddenLayers[i - 1]))
+            self.w.append(np.random.randn(
+                hiddenLayers[i], hiddenLayers[i - 1]))
             self.b.append(np.random.randn(hiddenLayers[i], 1))
-        
+
         # self.w[0] = np.random.randn(16, 1024)
         # self.W[1] = np.random.randn(16, 16)
 
@@ -60,7 +65,7 @@ class Net():
         for i in range(1, self.n + 1):
             self.z.append(np.dot(self.w[i], self.a[i - 1]) + self.b[i])
             self.a.append(activate(self.z[i]))
-        
+
         # self.z[0] = np.dot(self.w[0], self.X) + self.b[0]
         # self.a[0] = activate(self.z[0])
         # self.z[1] = np.dot(self.w[1], self.a[0]) + self.b[1]
@@ -77,11 +82,11 @@ class Net():
         for i in range(self.n - 1, -1, -1):
             self.delta[i] = activate(self.z[i], True) * \
                 (np.dot(self.w[i + 1].T, self.delta[i + 1]))
-        
+
         dw = [np.dot(self.delta[0], self.X.T)]
         for i in range(1, self.n + 1):
             dw.append(np.dot(self.delta[i], self.a[i - 1].T))
-            
+
         # self.delta[2] = activate(self.z[2], True) * \
         #     squareErrorSum(self.y_hat, y, True)
         # self.delta[1] = activate(self.z[1], True) * \
@@ -95,7 +100,7 @@ class Net():
         # d[1] = self.delta[1]
         # d[0] = self.delta[0]
 
-        #update weight
+        # update weight
         for i in range(self.n + 1):
             self.w[i] -= self.alpha * dw[i]
             self.b[i] -= self.alpha * self.delta[i]
@@ -123,35 +128,47 @@ class Net():
                 print("IOError")
         return obj
 
-    def train(self, trainMat, trainLabels, Epoch=5, bitch=None):
+    def train(self, trainingDataset, trainingLabels, Epoch=5, batch=None, shuffle=False):
+        if shuffle == True:
+            tmp = list(zip(trainingDataset, trainingLabels))
+            for i in range(100):
+                random.shuffle(tmp)
+            trainingDataset[:], trainingLabels[:] = zip(*tmp)
         for epoch in range(Epoch):
             acc = 0.0
             acc_cnt = 0
-            label = np.zeros([10, 1], int)  # 先生成一个10x1是向量，减少运算。用于生成one_hot格式的label
-            for i in range(len(trainMat)):  # 可以用batch，数据较少，一次训练所有数据集
-                X = trainMat[i, :].reshape([1024, 1])  # 生成输入
+            # 先生成一个10x1是向量，减少运算。用于生成one_hot格式的label
+            label = np.zeros([10, 1], int)
+            for i in range(len(trainingDataset)):  # 可以用batch，数据较少，一次训练所有数据集
+                X = trainingDataset[i, :].reshape([1024, 1])  # 生成输入
 
-                labelidx = trainLabels[i]
+                labelidx = trainingLabels[i]
                 label[labelidx][0] = 1.0
 
                 Loss, y_hat = self.forward(X, label, Sigmoid)  # 前向传播
                 self.backward(label, Sigmoid)  # 反向传播
 
                 label[labelidx][0] = 0.0  # 还原为0向量
-                acc_cnt += int(trainLabels[i] == np.argmax(y_hat))
+                acc_cnt += int(trainingLabels[i] == np.argmax(y_hat))
 
-            acc = acc_cnt / len(trainMat)
+            acc = acc_cnt / len(trainingDataset)
             self.testLoss.append(Loss)
-            print("epoch:%d,loss:%02f,accrucy : %02f%%" % (epoch + 1, Loss, acc*100))
+            print("epoch:%d,loss:%02f,accrucy : %02f%%" %
+                  (epoch + 1, Loss, acc*100))
 
-    def test(self, testMat, testLabels, bitch=None):
+    def test(self, testDataset, testLabels, batch=None, shuffle=False):
+        if shuffle == True:
+            tmp = list(zip(testDataset, testLabels))
+            for i in range(100):
+                random.shuffle(tmp)
+            testDataset[:], testLabels[:] = zip(*tmp)
         acc = 0.0
         acc_cnt = 0
         label = np.zeros([10, 1], int)  # 先生成一个10x1是向量，减少运算。用于生成one_hot格式的label
-        if(bitch == None):
-            bitch = len(testMat)
-        for i in range(bitch):  # 可以用batch，数据较少，一次训练所有数据集
-            X = testMat[i, :].reshape([1024, 1])  # 生成输入
+        if(batch == None):
+            batch = len(testDataset)
+        for i in range(batch):  # 可以用batch，数据较少，一次训练所有数据集
+            X = testDataset[i, :].reshape([1024, 1])  # 生成输入
 
             labelidx = testLabels[i]
             label[labelidx][0] = 1.0
@@ -160,21 +177,21 @@ class Net():
 
             label[labelidx][0] = 0.0  # 还原为0向量
             acc_cnt += int(testLabels[i] == np.argmax(y_hat))
-        acc = acc_cnt / bitch
-        print("test num: %d, accurate num : %d, accrucy : %05.3f%%" % (bitch, acc_cnt, acc*100))
+        acc = acc_cnt / batch
+        print("test num: %d, accurate num : %d, accrucy : %05.3f%%" %
+              (batch, acc_cnt, acc*100))
 
 
 if __name__ == "__main__":
     trainingDataset, trainingLabels = readDataset('dataset/trainingDigits')
-
-    net = Net([8, 24]) # 中间层各层神经元数量
+    net = Net([16,16])  # 中间层各层神经元数量
     net.setLearningRate(0.01)
     net.train(trainingDataset, trainingLabels, Epoch=200)
     plotLosslist(net.testLoss, "Loss of numpy_clf : alpha=" + str(net.alpha))
 
     testDataset, testLabels = readDataset('dataset/testDigits')
     net.test(testDataset, testLabels)
-    net.save("hr.model")
+    # net.save("hr.model")
 
     # newmodel = Net.load("hr.model")
     # newmodel.test(testDataset, testLabels)
