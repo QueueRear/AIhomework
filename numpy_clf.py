@@ -1,23 +1,9 @@
 import numpy as np
-from os import listdir
-from loader import img2vector
+
+from DataProcess import DataProcess
 from plot import plotLosslist
-import matplotlib.pyplot as plt
 import pickle
 import random
-
-
-def readDataset(path):
-    fileList = listdir(path)  # 获取当前文件夹下所有文件
-    n = len(fileList)
-    dataset = np.zeros([n, 1024], int)  # 存放数字文件
-    labels = []  # 存放标签
-    for i in range(n):  # 遍历文件
-        filename = fileList[i]
-        digit = int(filename.split('_')[0])  # 文件名中包含了标签
-        labels.append(digit)
-        dataset[i] = img2vector(path + '/' + filename)  # 文件对应的向量保存向量化的图像
-    return dataset, labels
 
 
 def Sigmoid(x, diff=False):
@@ -138,18 +124,21 @@ class Net():
             acc = 0.0
             acc_cnt = 0
             # 先生成一个10x1是向量，减少运算。用于生成one_hot格式的label
-            label = np.zeros([10, 1], int)
+            # label = np.zeros([10, 1], int)
             for i in range(len(trainingDataset)):  # 可以用batch，数据较少，一次训练所有数据集
                 X = trainingDataset[i, :].reshape([1024, 1])  # 生成输入
 
-                labelidx = trainingLabels[i]
-                label[labelidx][0] = 1.0
+                # labelidx = trainingLabels[i]
+                # label[labelidx][0] = 1.0
+                # print(label)
+                label = trainingLabels[i, :].reshape([10, 1])
 
                 Loss, y_hat = self.forward(X, label, Sigmoid)  # 前向传播
                 self.backward(label, Sigmoid)  # 反向传播
 
-                label[labelidx][0] = 0.0  # 还原为0向量
-                acc_cnt += int(trainingLabels[i] == np.argmax(y_hat))
+                # label[labelidx][0] = 0.0  # 还原为0向量
+                # print(np.argmax(label))
+                acc_cnt += int(np.argmax(label) == np.argmax(y_hat))
 
             acc = acc_cnt / len(trainingDataset)
             self.testLoss.append(Loss)
@@ -164,32 +153,34 @@ class Net():
             testDataset[:], testLabels[:] = zip(*tmp)
         acc = 0.0
         acc_cnt = 0
-        label = np.zeros([10, 1], int)  # 先生成一个10x1是向量，减少运算。用于生成one_hot格式的label
+        # label = np.zeros([10, 1], int)  # 先生成一个10x1是向量，减少运算。用于生成one_hot格式的label
         if(batch == None):
             batch = len(testDataset)
         for i in range(batch):  # 可以用batch，数据较少，一次训练所有数据集
             X = testDataset[i, :].reshape([1024, 1])  # 生成输入
 
-            labelidx = testLabels[i]
-            label[labelidx][0] = 1.0
+            # labelidx = testLabels[i]
+            # label[labelidx][0] = 1.0
+            label = testLabels[i, :].reshape([10, 1])
 
             Loss, y_hat = self.forward(X, label, Sigmoid)  # 前向传播
 
-            label[labelidx][0] = 0.0  # 还原为0向量
-            acc_cnt += int(testLabels[i] == np.argmax(y_hat))
+            # label[labelidx][0] = 0.0  # 还原为0向量
+            acc_cnt += int(np.argmax(label) == np.argmax(y_hat))
         acc = acc_cnt / batch
         print("test num: %d, accurate num : %d, accrucy : %05.3f%%" %
               (batch, acc_cnt, acc*100))
 
 
 if __name__ == "__main__":
-    trainingDataset, trainingLabels = readDataset('dataset/trainingDigits')
+    trainingDataset, trainingLabels = DataProcess(
+        'dataset/trainingDigits').readDataset()
     net = Net([16,16])  # 中间层各层神经元数量
-    net.setLearningRate(0.01)
-    net.train(trainingDataset, trainingLabels, Epoch=200)
+    net.setLearningRate(0.1)
+    net.train(trainingDataset, trainingLabels, Epoch=100)
     plotLosslist(net.testLoss, "Loss of numpy_clf : alpha=" + str(net.alpha))
 
-    testDataset, testLabels = readDataset('dataset/testDigits')
+    testDataset, testLabels = DataProcess('dataset/testDigits').readDataset()
     net.test(testDataset, testLabels)
     # net.save("hr.model")
 
