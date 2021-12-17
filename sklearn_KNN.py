@@ -1,7 +1,7 @@
 import numpy as np
 from os import error, listdir
 from DataProcess import DataProcess
-from sklearn import neighbors
+from sklearn.neighbors import KNeighborsClassifier
 
 class NewDataProcess(DataProcess): # 继承数据处理类
     def __init__(self, path):
@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
     # 构建 KNN 分类器
     # 设置查找算法及邻居点数量（k值）
-    knn = neighbors.KNeighborsClassifier(algorithm='kd_tree', n_neighbors=3)
+    knn = KNeighborsClassifier(algorithm='kd_tree', n_neighbors=3)
     print(knn)
     knn.fit(trainingDataset, trainingLabels)
 

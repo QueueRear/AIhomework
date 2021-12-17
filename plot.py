@@ -22,7 +22,3 @@ def plotLosslist(Loss, title):
         os.mkdir(fileName)
     plt.savefig(path)
     # plt.show()
-
-if __name__ == '__main__':
-    Loss = [0.2, 0.3, 0.1, 0.11, 0.12, 0.13, 0.11, 0.55]
-    plotLosslist(Loss, 'Loss of sklearn_clf : alpha=0.01')

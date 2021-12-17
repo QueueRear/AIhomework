@@ -7,8 +7,6 @@ from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 import torch.nn.functional as func
 import torch.optim as optim
-from torchvision import transforms
-
 
 # 数据处理类
 class DataProcess(Dataset):
@@ -139,14 +137,6 @@ if __name__ == "__main__":
     DEVICE = torch.device("cuda" if torch.cuda.is_available()
                         else "cpu")  # 根据平台判断是否用显卡
     EPOCHS = 25  # 训练轮数
-
-    # 构建 pipeline，对图像做处理
-    pipeline = transforms.Compose([
-        # 将图片转换成tensor类型
-        transforms.ToTensor(),
-        # 正则化，第一个参数是标准差，第二个是均值，当过拟合时降低模型复杂度
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
 
     # 加载数据集
     trainingData = DataProcess('dataset/testDigits')

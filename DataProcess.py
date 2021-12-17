@@ -27,10 +27,3 @@ class DataProcess():
             labels[i][digit] = 1  # 将文件对应的向量对应的维度置一
             dataset[i] = self.img2vector(self.path + '/' + filename)  # 文件对应的向量保存向量化的图像
         return dataset, labels
-
-
-if __name__ == "__main__":
-    trainingDataset, trainingLabels = DataProcess(
-        'dataset/trainingDigits').readDataset()
-    label = trainingLabels[0].reshape([1, 10])
-    print(label)
