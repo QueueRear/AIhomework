@@ -7,13 +7,8 @@ from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 import torch.nn.functional as func
 import torch.optim as optim
-from torchvision import datasets, transforms
-from torchvision.transforms.functional import normalize
+from torchvision import transforms
 
-# 定义超参数
-BATCH_SIZE = 128 # 每批处理的数据量
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") # 根据平台判断是否用显卡
-EPOCHS = 25 # 训练轮数
 
 # 数据处理类
 class DataProcess(Dataset):
@@ -84,6 +79,7 @@ class CNN(nn.Module):
 
 # 定义训练方法
 def train(model, device, trainingLoader, optimizer, epoch):
+    trainLoss = []
     for i in range(epoch):
         accurate = 0.0
         avgLoss = 0.0
@@ -98,6 +94,7 @@ def train(model, device, trainingLoader, optimizer, epoch):
             output = model(data)
             # 计算损失
             loss = func.cross_entropy(output, label) # 针对多分类任务的损失函数
+            trainLoss.append(loss.item())
             avgLoss += loss.item()
             # 找到概率值最大的下标
             pred = output.argmax(dim=1) # dim表示维度
@@ -110,6 +107,7 @@ def train(model, device, trainingLoader, optimizer, epoch):
         avgLoss /= len(trainingData.data_info)
         print("Epoch:{} Loss:{:.6f} Accuracy:{:.4f}%".format(
             i + 1, avgLoss, 100.0*accurate / len(trainingData.data_info)))
+    return trainLoss
 
 # 定义测试方法
 def test(model, device, testLoader):
@@ -136,6 +134,12 @@ def test(model, device, testLoader):
 
 
 if __name__ == "__main__":
+    # 定义超参数
+    BATCH_SIZE = 128  # 每批处理的数据量
+    DEVICE = torch.device("cuda" if torch.cuda.is_available()
+                        else "cpu")  # 根据平台判断是否用显卡
+    EPOCHS = 25  # 训练轮数
+
     # 构建 pipeline，对图像做处理
     pipeline = transforms.Compose([
         # 将图片转换成tensor类型
@@ -158,5 +162,6 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters())  # 优化器
 
     # 调用方法训练测试
-    train(model, DEVICE, trainingLoader, optimizer, EPOCHS)
+    trainLoss = train(model, DEVICE, trainingLoader, optimizer, EPOCHS)
+    plotLosslist(trainLoss, "Loss of PyTorch : Epochs=" + str(EPOCHS))
     test(model, DEVICE, testLoader)
