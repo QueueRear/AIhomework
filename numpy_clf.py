@@ -42,7 +42,7 @@ class Net():
         self.w.append(np.random.randn(10, hiddenLayers[-1]))
         self.b.append(np.random.randn(10, 1))
         self.alpha = 0.01  # 学习率
-        self.testLoss = []  # 用于作图
+        self.trainLoss = []  # 用于作图
 
     def forward(self, X, y, activate):
         self.X = X
@@ -141,7 +141,7 @@ class Net():
                 acc_cnt += int(np.argmax(label) == np.argmax(y_hat))
 
             acc = acc_cnt / len(trainingDataset)
-            self.testLoss.append(Loss)
+            self.trainLoss.append(Loss)
             print("epoch:%d,loss:%02f,accrucy : %02f%%" %
                   (epoch + 1, Loss, acc*100))
 
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     net = Net([16,16])  # 中间层各层神经元数量
     net.setLearningRate(0.1)
     net.train(trainingDataset, trainingLabels, Epoch=100)
-    plotLosslist(net.testLoss, "Loss of numpy_clf : alpha=" + str(net.alpha))
+    plotLosslist(net.trainLoss, "Loss of numpy_clf : alpha=" + str(net.alpha))
 
     testDataset, testLabels = DataProcess('dataset/testDigits').readDataset()
     net.test(testDataset, testLabels)
