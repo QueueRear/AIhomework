@@ -38,7 +38,7 @@ class DataProcess(Dataset):
 class CNN(nn.Module):
     def __init__(self):
         super(CNN, self).__init__()
-        # 第一层输入层，1：灰度图片的通道 10：输出通道 5：kernel卷积层
+        # 第一层输入层，1：灰度图片的通道 10：输出通道 5：kernel卷积核
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=10, kernel_size=5)
         # 第二层中间层：10：输入通道 20：输出通道 3：kernel
         self.conv2 = nn.Conv2d(in_channels=10, out_channels=20, kernel_size=3)
@@ -76,7 +76,8 @@ class CNN(nn.Module):
 
 
 # 定义训练方法
-def train(model, device, trainingLoader, optimizer, epoch):
+def train(model, device, trainingLoader, epoch):
+    optimizer = optim.Adam(model.parameters()) # 定义优化器
     trainLoss = []
     for i in range(epoch):
         accurate = 0.0
@@ -147,11 +148,10 @@ if __name__ == "__main__":
 
     net = CNN()
 
-    # 定义优化器
+    # 部署到 Device 上
     model = net.to(DEVICE)
-    optimizer = optim.Adam(model.parameters())  # 优化器
 
     # 调用方法训练测试
-    trainLoss = train(model, DEVICE, trainingLoader, optimizer, EPOCHS)
+    trainLoss = train(model, DEVICE, trainingLoader, EPOCHS)
     plotLosslist(trainLoss, "Loss of PyTorch : Epochs=" + str(EPOCHS))
     test(model, DEVICE, testLoader)

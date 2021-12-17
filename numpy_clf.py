@@ -5,15 +5,15 @@ from plot import plotLosslist
 import random
 
 
-def Sigmoid(x, diff=False):
-    def sigmoid(x):
+def Sigmod(x, diff=False):
+    def sigmod(x):
         return 1 / (1 + np.exp(-x))
 
-    def dsigmoid(x):
-        f = sigmoid(x)
+    def dsigmod(x):
+        f = sigmod(x)
         return f * (1 - f)
 
-    return sigmoid(x) if diff == False else dsigmoid(x)
+    return sigmod(x) if diff == False else dsigmod(x)
 
 
 def squareErrorSum(y_hat, y, diff=False):
@@ -69,10 +69,8 @@ class Net():
             self.w[i] -= self.alpha * dw[i]
             self.b[i] -= self.alpha * self.delta[i]
 
-    def setLearningRate(self, l):
-        self.alpha = l
-
-    def train(self, trainingDataset, trainingLabels, Epoch=5, batch=None, shuffle=False):
+    def train(self, trainingDataset, trainingLabels, Epoch=5, alpha=0.01, batch=None, shuffle=False):
+        self.alpha = alpha
         if shuffle == True:
             tmp = list(zip(trainingDataset, trainingLabels))
             for i in range(100):
@@ -80,13 +78,15 @@ class Net():
             trainingDataset[:], trainingLabels[:] = zip(*tmp)
         for epoch in range(Epoch):
             accurate = 0
-            for i in range(len(trainingDataset)):  # 可以用batch，数据较少，一次训练所有数据集
+            if batch == None:
+                batch = len(trainingDataset)
+            for i in range(batch):  # 可以用batch，数据较少，一次训练所有数据集
                 X = trainingDataset[i, :].reshape([1024, 1])  # 生成输入
 
                 label = trainingLabels[i, :].reshape([10, 1])
 
-                Loss, y_hat = self.forward(X, label, Sigmoid)  # 前向传播
-                self.backward(label, Sigmoid)  # 反向传播
+                Loss, y_hat = self.forward(X, label, Sigmod)  # 前向传播
+                self.backward(label, Sigmod)  # 反向传播
 
                 accurate += int(np.argmax(label) == np.argmax(y_hat))
 
@@ -101,16 +101,15 @@ class Net():
             for i in range(100):
                 random.shuffle(tmp)
             testDataset[:], testLabels[:] = zip(*tmp)
-        Loss = 0.0
         accurate = 0
-        if(batch == None):
+        if batch == None:
             batch = len(testDataset)
         for i in range(batch):  # 可以用batch，数据较少，一次训练所有数据集
             X = testDataset[i, :].reshape([1024, 1])  # 生成输入
 
             label = testLabels[i, :].reshape([10, 1])
 
-            Loss, y_hat = self.forward(X, label, Sigmoid)  # 前向传播
+            Loss, y_hat = self.forward(X, label, Sigmod)  # 前向传播
 
             accurate += int(np.argmax(label) == np.argmax(y_hat))
         acc = 100.0 * accurate / batch
@@ -123,7 +122,6 @@ if __name__ == "__main__":
     testDataset, testLabels = DataProcess('dataset/testDigits').readDataset()
     for sd in range(20, 30):
         net = Net([16,16], sd)  # 中间层各层神经元数量
-        net.setLearningRate(0.01)
         net.train(trainingDataset, trainingLabels, Epoch=200)
         plotLosslist(net.trainLoss, "Loss of numpy_clf : seed=" + str(sd))
 
