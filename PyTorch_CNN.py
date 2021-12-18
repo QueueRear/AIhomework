@@ -1,3 +1,4 @@
+from matplotlib.pyplot import ginput
 import torch
 import numpy as np
 from os import listdir
@@ -7,6 +8,8 @@ from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 import torch.nn.functional as func
 import torch.optim as optim
+
+import  time
 
 # 数据处理类
 class DataProcess(Dataset):
@@ -43,12 +46,9 @@ class CNN(nn.Module):
         # 第二层中间层：10：输入通道 20：输出通道 3：kernel
         self.conv2 = nn.Conv2d(in_channels=10, out_channels=20, kernel_size=3)
         # 防止过拟合
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        # 全连接层，线性层 20*12*12：输入通道 500：输出通道
-        self.fc1 = nn.Linear(20*12*12, 500)
-        # 500：输入通道 10：输出通道
-        self.fc2 = nn.Linear(500, 10)
+        self.dropout = nn.Dropout(0.25)
+        # 全连接层，线性层 20*12*12：输入通道 10：输出通道
+        self.out = nn.Linear(20*6*6, 10)
 
     def forward(self, x): # 前向传播
         input_size = x.size(0) # x的格式：batch_size * 1（灰度通道） * 32 * 32
@@ -60,16 +60,14 @@ class CNN(nn.Module):
         # 调用第二个卷积层
         x = self.conv2(x)  # 输入：batch_size*10*14*14，输出：batch*20*(14-3+1)*(14-3+1)
         x = func.relu(x)
+        # 喂给池化层，输入：batch*20*12*12，输出：batch_size*20*12/2*12/2
+        x = func.max_pool2d(x, 2, 2)
 
-        x = self.dropout1(x)
-        x = x.view(input_size, -1) # 拉平成一维向量，-1：自动计算维度，20*12*12=2880
+        x = self.dropout(x)
+        x = x.view(input_size, -1) # 拉平成一维向量，-1：自动计算维度，20*6*6=720
 
         # 喂给全连接层
-        x = self.fc1(x) # 输入：batch*2880，输出：batch*500
-        x = func.relu(x)
-
-        x = self.dropout2(x)
-        x = self.fc2(x)  # 输入：batch*500，输出：batch*10
+        x = self.out(x) # 输入：batch*720，输出：batch*500
 
         output = func.log_softmax(x, dim=1) # 计算分类后每个数字的概率，dim=1表示按行计算
         return output
@@ -128,8 +126,8 @@ def test(model, device, testLoader):
             # 累计正确值
             accurate += pred.eq(label.view_as(pred)).sum().item()
         loss /= len(testData.data_info)
-        print("Test Loss:{:.6f} Accuracy:{:.4f}%".format(
-            loss, 100.0*accurate / len(testData.data_info)))
+        print("Test Loss:{:.6f} Error:{} Accuracy:{:.4f}%".format(
+            loss, len(testData.data_info)-accurate, 100.0*accurate / len(testData.data_info)))
 
 
 if __name__ == "__main__":
@@ -137,21 +135,24 @@ if __name__ == "__main__":
     BATCH_SIZE = 128  # 每批处理的数据量
     DEVICE = torch.device("cuda" if torch.cuda.is_available()
                         else "cpu")  # 根据平台判断是否用显卡
-    EPOCHS = 25  # 训练轮数
+    EPOCHS = 20  # 训练轮数
 
     # 加载数据集
     trainingData = DataProcess('dataset/testDigits')
     testData = DataProcess('dataset/trainingDigits')
-
-    trainingLoader = DataLoader(trainingData, BATCH_SIZE, True)
-    testLoader = DataLoader(testData, BATCH_SIZE, True)
 
     net = CNN()
 
     # 部署到 Device 上
     model = net.to(DEVICE)
 
+    trainingLoader = DataLoader(trainingData, BATCH_SIZE, True)
+    testLoader = DataLoader(testData, BATCH_SIZE, True)
+
     # 调用方法训练测试
+    start = time.time()
     trainLoss = train(model, DEVICE, trainingLoader, EPOCHS)
-    plotLosslist(trainLoss, "Loss of PyTorch : Epochs=" + str(EPOCHS))
+    end = time.time()
+    print(end-start)
+    plotLosslist(trainLoss, "Loss of PyTorch : Epoch=" + str(EPOCHS))
     test(model, DEVICE, testLoader)
